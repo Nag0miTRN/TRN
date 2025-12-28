@@ -34,6 +34,7 @@
             border: 1px solid rgba(78, 192, 180, 0.3);
             flex-wrap: wrap;
             justify-content: center;
+            position: relative;
         }
         
         .title {
@@ -69,6 +70,8 @@
             transition: all 0.3s ease;
             border: 1px solid rgba(78, 192, 180, 0.2);
             white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
         }
         
         .link-item:hover {
@@ -100,6 +103,16 @@
             box-shadow: 0 5px 15px rgba(25, 118, 210, 0.2);
         }
         
+        .trigger-link.copied {
+            background: rgba(56, 142, 60, 0.3);
+            border-color: rgba(76, 175, 80, 0.5);
+            color: #a5d6a7;
+        }
+        
+        .trigger-link.copied i {
+            color: #81c784;
+        }
+        
         .bilibili-link {
             background: rgba(251, 114, 153, 0.15);
             border-color: rgba(251, 114, 153, 0.3);
@@ -121,6 +134,26 @@
             padding-left: 5px;
         }
         
+        .copy-notification {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(56, 142, 60, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .copy-notification.show {
+            opacity: 1;
+        }
+        
         @media (max-width: 768px) {
             .info-bar {
                 flex-direction: column;
@@ -139,6 +172,12 @@
             .link-item {
                 padding: 8px 15px;
                 font-size: 0.9rem;
+            }
+            
+            .copy-notification {
+                bottom: -50px;
+                font-size: 0.85rem;
+                padding: 6px 12px;
             }
         }
         
@@ -174,21 +213,101 @@
                 <span>GitHub仓库</span>
             </a>
             
-            <a href="https://act.ask0.cc" class="link-item trigger-link" target="_blank">
-                <i class="fas fa-download"></i>
-                <span>获取触发器</span>
-            </a>
+            <div class="link-item trigger-link" id="copy-trigger-btn">
+                <i class="fas fa-copy"></i>
+                <span>复制触发器链接</span>
+            </div>
             
             <a href="https://space.bilibili.com/74131583" class="link-item bilibili-link" target="_blank">
                 <i class="fab fa-bilibili"></i>
                 <span>关注Nagomi</span>
             </a>
         </div>
-        
-     
+
+        <div class="copy-notification" id="copy-notification">
+            <i class="fas fa-check-circle"></i> 链接已复制到剪贴板！
+        </div>
     </div>
     
     <script>
+        
+        const triggerUrl = "https://act.ask0.cc/trn";
+        
+        
+        const copyTriggerBtn = document.getElementById('copy-trigger-btn');
+        const copyNotification = document.getElementById('copy-notification');
+        
+        
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (err) {
+                console.log('Clipboard API failed, using fallback method');
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    const success = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    return success;
+                } catch (backupErr) {
+                    console.error('Both copy methods failed:', backupErr);
+                    return false;
+                }
+            }
+        }
+        
+        
+        function showCopyNotification() {
+            copyNotification.classList.add('show');
+            setTimeout(() => {
+                copyNotification.classList.remove('show');
+            }, 2000);
+        }
+        
+        
+        copyTriggerBtn.addEventListener('click', async () => {
+            
+            const originalText = copyTriggerBtn.querySelector('span').textContent;
+            const originalIcon = copyTriggerBtn.querySelector('i').className;
+            
+            copyTriggerBtn.querySelector('span').textContent = '复制中...';
+            copyTriggerBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+            const success = await copyToClipboard(triggerUrl);
+            
+            if (success) {
+                copyTriggerBtn.querySelector('span').textContent = '已复制！';
+                copyTriggerBtn.querySelector('i').className = 'fas fa-check';
+                copyTriggerBtn.classList.add('copied')
+
+                showCopyNotification();
+                
+            
+                setTimeout(() => {
+                    copyTriggerBtn.querySelector('span').textContent = originalText;
+                    copyTriggerBtn.querySelector('i').className = originalIcon;
+                    copyTriggerBtn.classList.remove('copied');
+                }, 3000);
+            } else {
+                copyTriggerBtn.querySelector('span').textContent = '复制失败';
+                copyTriggerBtn.querySelector('i').className = 'fas fa-exclamation-triangle';
+                
+                setTimeout(() => {
+                    copyTriggerBtn.querySelector('span').textContent = originalText;
+                    copyTriggerBtn.querySelector('i').className = originalIcon;
+                }, 2000);
+            }
+        });
+        
         document.querySelectorAll('.link-item').forEach(link => {
             link.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateY(-3px) scale(1.05)';
