@@ -1,0 +1,9 @@
+{
+    "redirects": [
+      {
+        "source": "/trn",
+        "destination": "/NagomiUWU-V3_9_9_1.xml",
+        "statusCode": 301
+      }
+    ]
+}
